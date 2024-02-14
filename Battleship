@@ -1,0 +1,175 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class GameManager : MonoBehaviour
+{
+    public GameObject cellPrefab;
+    public Transform gridRoot;
+    public Text winLabel;
+    public Text timeLabel;
+    public Text scoreLabel;
+    public Button fireButton;
+    public Button restartButton;
+
+    private int[,] grid;
+    private bool[,] hits;
+    private int nRows = 5;
+    private int nCols = 5;
+    private int row = 0;
+    private int col = 0;
+    private int score = 0;
+    private float timeElapsed = 0f;
+
+    void Awake()
+    {
+        InitializeGrid();
+        InitializeHits();
+        BuildGrid();
+        SelectCell(row, col);
+        restartButton.onClick.AddListener(Restart);
+    }
+
+    void Update()
+    {
+        UpdateTime();
+    }
+
+    void InitializeGrid()
+    {
+        grid = new int[nRows, nCols];
+        PlaceShips();
+    }
+
+    void InitializeHits()
+    {
+        hits = new bool[nRows, nCols];
+    }
+
+    void BuildGrid()
+    {
+        for (int i = 0; i < nRows; i++)
+        {
+            for (int j = 0; j < nCols; j++)
+            {
+                GameObject cell = Instantiate(cellPrefab, new Vector3(j, -i, 0), Quaternion.identity, gridRoot);
+                cell.GetComponent<Cell>().row = i;
+                cell.GetComponent<Cell>().col = j;
+            }
+        }
+    }
+
+    void SelectCell(int row, int col)
+    {
+        UnselectCell(this.row, this.col);
+        SelectCell(row, col);
+        this.row = row;
+        this.col = col;
+    }
+
+    void UnselectCell(int row, int col)
+    {
+        // Implement unselect cell functionality
+    }
+
+    void MoveVertical(int direction)
+    {
+        int newRow = Mathf.Clamp(row + direction, 0, nRows - 1);
+        SelectCell(newRow, col);
+    }
+
+    void MoveHorizontal(int direction)
+    {
+        int newCol = Mathf.Clamp(col + direction, 0, nCols - 1);
+        SelectCell(row, newCol);
+    }
+
+    void PlaceShips()
+    {
+        for (int i = 0; i < nRows; i++)
+        {
+            for (int j = 0; j < nCols; j++)
+            {
+                int randomNumber = Random.Range(0, 10);
+                if (randomNumber > 5)
+                    grid[i, j] = 1;
+                else
+                    grid[i, j] = 0;
+            }
+        }
+    }
+
+    void UpdateTime()
+    {
+        timeElapsed += Time.deltaTime;
+        int minutes = (int)(timeElapsed / 60f);
+        int seconds = (int)(timeElapsed % 60f);
+        timeLabel.text = minutes.ToString("00") + ":" + seconds.ToString("00");
+    }
+
+    public void Fire()
+    {
+        if (hits[row, col])
+            return;
+
+        hits[row, col] = true;
+
+        if (grid[row, col] == 1)
+        {
+            ShowHit();
+            score++;
+            scoreLabel.text = score.ToString();
+        }
+        else
+        {
+            ShowMiss();
+        }
+
+        CheckWinCondition();
+    }
+
+    void ShowHit()
+    {
+        // Implement show hit functionality
+    }
+
+    void ShowMiss()
+    {
+        // Implement show miss functionality
+    }
+
+    void CheckWinCondition()
+    {
+        for (int i = 0; i < nRows; i++)
+        {
+            for (int j = 0; j < nCols; j++)
+            {
+                if (grid[i, j] == 1 && !hits[i, j])
+                    return;
+            }
+        }
+
+        winLabel.gameObject.SetActive(true);
+    }
+
+    public void Restart()
+    {
+        UnselectCell(row, col);
+        row = 0;
+        col = 0;
+        InitializeHits();
+        timeElapsed = 0f;
+        score = 0;
+        scoreLabel.text = score.ToString();
+
+        foreach (Transform child in gridRoot)
+        {
+            Cell cell = child.GetComponent<Cell>();
+            if (cell != null)
+            {
+                cell.ResetCell();
+            }
+        }
+
+        PlaceShips();
+    }
+}
